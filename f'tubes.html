@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Menampilkan Data CSV dan Grafik di Canvas</title>
+    <style>
+        canvas {
+            border: 2px solid black;
+        }
+
+        #bar-info {
+            position: absolute;
+            background: white;
+            padding: 5px;
+            border: 1px solid white;
+            display: none;
+            border-radius: 5px;
+        }
+    </style>
+</head>
+<body>
+    <input type="file" id="csvFile" accept=".csv">
+    <canvas id="canvas1" width="900" height="400"></canvas>
+    <div id="bar-info"></div>
+
+    <script>
+        var canvasSaya = document.querySelector("#canvas1");
+        var ctx = canvasSaya.getContext("2d");
+
+        var totalBars = 30;
+        var lebarBar = 20;
+        var jarakAntarBar = 5;
+        var barWidth = lebarBar + jarakAntarBar;
+
+        function gambarloading(index, data) {
+            var tinggiData = data[index].calories;
+            var tinggibar = tinggiData * (canvasSaya.height - 200) / 100;
+            var y = canvasSaya.height - tinggibar;
+            var x = index * barWidth;
+
+            var pointArray = [
+                { x: x, y: y },
+                { x: x, y: canvasSaya.height },
+                { x: x + lebarBar, y: canvasSaya.height },
+                { x: x + lebarBar, y: y },
+            ];
+
+            polygon(ctx, pointArray, 64, 224, 208);
+
+            function polygon(ctx, points, red, green, blue) {
+                ctx.fillStyle = `rgb(${red}, ${green}, ${blue})`;
+                ctx.beginPath();
+                ctx.moveTo(points[0].x, points[0].y);
+                for (var i = 1; i < points.length; i++) {
+                    ctx.lineTo(points[i].x, points[i].y);
+                }
+                ctx.closePath();
+                ctx.fill();
+            }
+
+            ctx.fillStyle = "black";
+            ctx.font = "12px Arial";
+            ctx.fillText(tinggiData, x, y - 5);
+
+            // Membuat event klik pada setiap bar
+            canvasSaya.addEventListener("click", function(event) {
+                var mouseX = event.clientX - canvasSaya.getBoundingClientRect().left;
+                var mouseY = event.clientY - canvasSaya.getBoundingClientRect().top;
+
+                var clickedBarIndex = Math.floor(mouseX / barWidth);
+
+                if (clickedBarIndex === index) {
+                    var barInfo = document.getElementById("bar-info");
+                    barInfo.style.display = "block";
+                    barInfo.style.left = event.clientX + "px";
+                    barInfo.style.top = event.clientY - 30 + "px";
+                    barInfo.textContent = data[index].name;
+                }
+            });
+        }
+
+        function animasiLoading(data) {
+            var delay = 100;
+            var currentIndex = 0;
+
+            function animateNextBar() {
+                if (currentIndex < totalBars) {
+                    gambarloading(currentIndex, data);
+                    currentIndex++;
+                    setTimeout(animateNextBar, delay);
+                }
+            }
+            animateNextBar();
+        }
+
+        document.getElementById("csvFile").addEventListener("change", function(event) {
+            var file = event.target.files[0];
+            var reader = new FileReader();
+
+            reader.onload = function(e) {
+                var contents = e.target.result;
+                var lines = contents.split("\n");
+                var data = [];
+
+                for (var i = 0; i < lines.length; i++) {
+                    var row = lines[i].split(",");
+                    if (row.length >= 2) {
+                        data.push({ name: row[0], calories: parseInt(row[3]) });
+                    }
+                }
+                animasiLoading(data);
+            };
+            reader.readAsText(file);
+        });
+    </script>
+</body>
+</html>
